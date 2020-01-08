@@ -4,18 +4,17 @@ RMRF=rm -rf
 CFLAGS=
 LDFLAGS=-lamiga
 
-OBJECTS=akutest.o
+TARGETS := akutest lm75 i2cget i2cset
 
-EXECUTABLE=akutest
+OBJECTS := $(addsuffix .o, $(TARGETS) )
 
-all: $(EXECUTABLE) 
+all: $(TARGETS)
 
-$(EXECUTABLE): $(OBJECTS)
-	$(CC) -o $(EXECUTABLE) $(LDFLAGS) $(OBJECTS)
+$(TARGETS) : % : %.o akuhei2c.o
+	$(CC) -o $@ $(LDFLAGS) $^
 
-%.o : %.c 
+%.o : %.c
 	$(CC) $(CFLAGS) -c $<
 
 clean :
-	$(RMRF) $(OBJECTS) $(EXECUTABLE)  
-
+	$(RMRF) $(OBJECTS) $(TARGETS)
