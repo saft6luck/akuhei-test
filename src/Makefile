@@ -4,7 +4,7 @@ RMRF=rm -rf
 CFLAGS=
 LDFLAGS=-lamiga
 
-TARGETS := akutest lm75 i2cget i2cset
+TARGETS := lm75 akutest i2cget i2cset
 
 OBJECTS := $(addsuffix .o, $(TARGETS) )
 

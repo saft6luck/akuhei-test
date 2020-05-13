@@ -86,7 +86,6 @@ int main(int argc, char **argv)
         clockport_write(&sc, I2CCON, ctrl);
         Delay(50);
 
-
 	i2c_sensor_addr = 0x48;
 
 	/* Need to ask DOS for a RDArgs structure */
