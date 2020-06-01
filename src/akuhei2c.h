@@ -9,15 +9,15 @@
 
 #include <hardware/intbits.h>
 
-/*#define DBG			1*/
+#define DBG			1
 
 #define CLOCKPORT_BASE		0xD80001
 #define CLOCKPORT_STRIDE	4
 
 #define I2CSTA			0
 #define I2CTO			0
-#define I2CDAT			2
-#define I2CADR			1
+#define I2CDAT			1
+#define I2CADR			2
 #define I2CCON			3
 
 #define I2CCON_CR0		(1 << 0)

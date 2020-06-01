@@ -81,10 +81,14 @@ int main(int argc, char **argv)
         }
 
         /* init the host controller */
-        /*ctrl = I2CCON_CR_59KHZ | I2CCON_ENSIO;*/
-        ctrl = I2CCON_CR_330KHZ | I2CCON_ENSIO;
-        clockport_write(&sc, I2CCON, ctrl);
-        Delay(50);
+	/*ctrl = I2CCON_CR_59KHZ | I2CCON_ENSIO;*/
+	/*ctrl = I2CCON_CR_88KHZ | I2CCON_ENSIO;*/
+	/*ctrl = I2CCON_CR_146KHZ | I2CCON_ENSIO;*/
+	/*ctrl = I2CCON_CR_217KHZ | I2CCON_ENSIO;*/
+	/*ctrl = I2CCON_CR_288KHZ | I2CCON_ENSIO;*/
+	ctrl = I2CCON_CR_330KHZ | I2CCON_ENSIO;
+	clockport_write(&sc, I2CCON, ctrl);
+	Delay(5);
 
 	i2c_sensor_addr = 0x48;
 
@@ -98,14 +102,20 @@ int main(int argc, char **argv)
 			i2c_sensor_addr = atoh(strp[0]);
 			i2c_sensor_addr <<= 4;
 			i2c_sensor_addr += atoh(strp[1]);*/
-			i2c_sensor_addr += *((LONG *)result[0]);
+			if(result[0]) {
+				i2c_sensor_addr += *((LONG *)result[0]);
+				/*VPrintf("user specified LM75 at addr 0x%02x\n", i2c_sensor_addr);*/
+				/*printf("user specified LM75 at addr 0x%02x\n", i2c_sensor_addr);*/
+			}
 			FreeArgs(myrda);
-		} else {
-			printf("ReadArgs returned NULL\n");
+
+
+		/*} else {
+			printf("ReadArgs returned NULL\n");*/
 		}
 		FreeDosObject(DOS_RDARGS, myrda);
-	} else {
-		printf("allocDosObject returned NULL.\n");
+	/*} else {
+		printf("allocDosObject returned NULL.\n");*/
 	}
 
 	buf[0] = 0xAC; /* configuration register */
@@ -128,14 +138,15 @@ int main(int argc, char **argv)
 		temperat *= 100;
 		temperat >>= 8;
 
-		for(p = 8; p > 0; --p)
+		/*for(p = 8; p > 0; --p)
 			printf("%c", buf[0] & (0x01 << (p-1)) ? '1' : '0');
 		printf(" ");
 		for(p = 8; p > 0; --p)
 			printf("%c", buf[1] & (0x01 << (p-1)) ? '1' : '0');
-		printf("\n");
+		printf("\n");*/
 		/*printf("read result: 0x%02X, %c0x%02X = %d.%02d%cC\n", buf[0], s, buf[1], buf[0], temperat, 0xb0);*/
-		VPrintf("LM75 at addr 0x%02x: %c%d.%02d%cC\n", i2c_sensor_addr, s, buf[0], temperat, 0xb0);
+		/*VPrintf("LM75 at addr 0x%02x: %c%d.%02d%cC\n", i2c_sensor_addr, s, buf[0], temperat, 0xb0);*/
+		printf("LM75 at addr 0x%02x: %c%d.%02d%cC\n", i2c_sensor_addr, s, buf[0], temperat, 0xb0);
 
 		ctrl = 0;
 		clockport_write(&sc, I2CCON, ctrl);

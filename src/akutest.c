@@ -51,6 +51,9 @@ int main(void)
 		/* XXX: clean up */
 	} 
 
+	/* dump state */
+	pca9564_dump_state(&sc);
+
 	/* init the host controller */
 	ctrl = I2CCON_CR_59KHZ | I2CCON_ENSIO;
 	clockport_write(&sc, I2CCON, ctrl);
@@ -58,8 +61,15 @@ int main(void)
 
 	buf[0] = 0x2;
 	pca9564_write(&sc, 0x48, 1, &buf); 	/* XXX */
+
+	/* dump state */
+	pca9564_dump_state(&sc);
+
 	/* read 2 bytes from 0x48 */
 	pca9564_read(&sc, 0x48, size, &buf); 	/* XXX */
+
+	/* dump state */
+	pca9564_dump_state(&sc);
 
 	printf("read result: %u, %u\n", buf[0], buf[1]);
 
