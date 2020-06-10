@@ -1,5 +1,7 @@
 #include "akuhei2c.h"
 
+/*int _chkabort(void) { PutSrt("Ctrl-C!\n"); return(0); };*/
+
 UBYTE
 clockport_read(pca9564_state_t *sp, UBYTE reg)
 {
@@ -56,12 +58,15 @@ pca9564_exec(pca9564_state_t *sp, UBYTE address, ULONG size, UBYTE **buf)
 
 	pca9564_send_start(sp);
 
+/*	Wait(sp->sigmask_intr || CheckSignal(SIGBREAKF_CTRL_C));*/
 	Wait(sp->sigmask_intr);
 
-	if (sp->cur_result != RESULT_OK) {
+/*	if(CheckSignal(SIGBREAKF_CTRL_C))
+		printf("woof woof CTRL-C!\n");*/
+/*	if (sp->cur_result != RESULT_OK) {
 		printf("OP: failed!\n");
 		pca9564_dump_state(sp);
-	}
+	}*/
 #ifdef DEBUG
 	else {
 		printf("OP: successful!\n");
@@ -160,7 +165,7 @@ pca9564_isr(__reg("a1") pca9564_state_t *sp)
 
 			clockport_write(sp, I2CCON, v);
 
-			sp->cur_result = RESULT_OK;
+			sp->cur_result = RESULT_ERR;
 			Signal(sp->MainTask, sp->sigmask_intr);
 			break;
 		case I2CSTA_DATA_RX_ACK_TX:	/* 0x50 */
@@ -212,15 +217,16 @@ pca9564_isr(__reg("a1") pca9564_state_t *sp)
 			clockport_write(sp, I2CCON, v);
 			break;
 		case I2CSTA_DATA_TX_ACK_RX:	/* 0x28 */
+		/*case I2CSTA_DATA_TX_NACK_RX:*/    /* 0x30 */
 			v = clockport_read(sp, I2CCON);
 
-			if (sp->bytes_count+1 < sp->buf_size) {
+			(sp->bytes_count)++;
+			if (sp->bytes_count < sp->buf_size) {
 				clockport_write(sp, I2CDAT, sp->buf[sp->bytes_count]);
 
 			} else {
 				v |= (I2CCON_STO);
 			}
-			(sp->bytes_count)++;
 
 			v &= ~(I2CCON_SI);
 			clockport_write(sp, I2CCON, v);

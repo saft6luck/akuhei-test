@@ -12,10 +12,12 @@
 /* My custom RDArgs */
 struct RDArgs *myrda;
 
-#define TEMPLATE "A=Address/A,R=Register,W=WordMode/S"
+/*#define TEMPLATE "A=Address/A,R=Register,V=Value,W=WordMode/S"*/
+#define TEMPLATE "A=Address/A,R=Register,V=Value"
 #define OPT_ADDR 0
 #define OPT_REGISTER  1
-#define OPT_READMODE  2
+#define OPT_VALUE  2
+#define OPT_WRITEMODE  3
 LONG result[3];
 
 void __check_abort(int) {
@@ -36,8 +38,8 @@ UBYTE atoh(char c) {
 	return r;
 }
 
-UBYTE stoi(STRPTR s) {
-	UBYTE r;
+ULONG stoi(STRPTR s) {
+	ULONG r;
 	while(*s) {
 		r <<= 4;
 		if((*s == 'x') || (*s == 'X'))
@@ -68,6 +70,7 @@ int main(int argc, char **argv)
 	unsigned short temperat;
 
 	UBYTE chip_addr, reg_addr;
+	ULONG reg_value;
 	LONG *strp;
 	STRPTR sptr;
 	UBYTE **arguments;
@@ -95,13 +98,6 @@ int main(int argc, char **argv)
 		printf("   argument #%d = >%s<\n", argNo, argv[argNo]);
 	}
 
-	/*memset(&act, 0, sizeof(act));
-	act.sa_sigaction = __check_abort;
-	sigaction(SIGINT, &act, NULL);*/
-
-	/*signal(SIGINT, __check_abort);*/
-	/*Delay(1);*/
-
 	/* Need to ask DOS for a RDArgs structure */
 	if (myrda = (struct RDArgs *)AllocDosObject(DOS_RDARGS, NULL)) {
 	/* parse my command line */
@@ -111,20 +107,26 @@ int main(int argc, char **argv)
 				if((s == 2) || (strncmp((STRPTR)result[OPT_ADDR], "0x", 2) == 0) && (s == 4)) {
 					chip_addr = stoi((STRPTR)result[OPT_ADDR]);
 					printf("Chip address Specified : >%s<, len=%d -> 0x%02X\n", (STRPTR)result[OPT_ADDR], strlen((STRPTR)result[OPT_ADDR]), chip_addr);
-					if(result[OPT_REGISTER]) {
-						switch(strlen((STRPTR)result[OPT_REGISTER])) {
-							case 2:
-							case 4:
-								reg_addr = stoi((STRPTR)result[OPT_REGISTER]);
-								printf("Register address Specified : >%s< -> 0x%02X\n", (STRPTR)result[OPT_REGISTER], reg_addr);
-								break;
-							default:
-								break;
-						}
-					}
-					if(result[OPT_READMODE]) {
-						size = 2;
-					}
+				}
+				if(result[OPT_REGISTER]) {
+					s = strlen((STRPTR)result[OPT_REGISTER]);
+					if(strncmp((STRPTR)result[OPT_REGISTER]) == 0)
+						s -= 2;
+					if(s%2)
+						printf("invalid length of argument value (%u) >%s<.\n", s--, (STRPTR)result[OPT_REGISTER]);
+					size = s / 2;
+					reg_addr = stoi((STRPTR)result[OPT_REGISTER]);
+					printf("Register address Specified : >%s<, len=%u -> %u\n", (STRPTR)result[OPT_REGISTER], s, reg_addr);
+				}
+				if(result[OPT_VALUE]) {
+					s = strlen((STRPTR)result[OPT_VALUE]);
+					if(strncmp((STRPTR)result[OPT_VALUE]) == 0)
+						s -= 2;
+					if(s%2)
+						printf("invalid length of argument value (%u) >%s<.\n", s--, (STRPTR)result[OPT_VALUE]);
+					size += s / 2;
+					reg_value = stoi((STRPTR)result[OPT_VALUE]);
+					printf("Register value Specified : >%s<, len=%u -> 0x%lX\n", (STRPTR)result[OPT_VALUE], s, reg_value);
 				}
 			}
 			FreeArgs(myrda);
@@ -177,9 +179,17 @@ int main(int argc, char **argv)
 	clockport_write(&sc, I2CCON, ctrl);
 	Delay(5);
 
-	buf[0] = 0xAC; /* configuration register */
-	buf[1] = 0x8C; /* high resolution */
-	/*pca9564_write(&sc, i2c_sensor_addr, 2, &buf);*/
+	buf[0] = reg_addr; /*0xAC;*/ /* configuration register */
+
+	for (argNo=size-1; argNo > 0; --argNo) {
+		buf[argNo] = (UBYTE)(0xFF & reg_value);
+		reg_value >>= 8;
+	}
+
+	printf("transmitting (%u bytes):", size);
+	for (argNo=0; argNo < size; ++argNo)
+		printf(" 0x%02x", buf[argNo]);
+	printf("\n");
 
 	s = clockport_read(&sc, I2CSTA);
 
@@ -188,16 +198,16 @@ int main(int argc, char **argv)
 		pca9564_dump_state(&sc);
 	}
 
-	/* read 2 bytes from 0x48 */
-	/* pca9564_read(&sc, 0x48, size, &buf); */
-	buf[0] = 0x00;
-	buf[1] = 0x00;
-	pca9564_read(&sc, chip_addr, size, &buf);
+	pca9564_write(&sc, chip_addr, size, &buf);
 
 	if (sc.cur_result == RESULT_OK) {
-		printf("received (%u): 0x%02x%02x\n", size, buf[0], buf[1]);
-		/*printf("read result: 0x%02X, %c0x%02X = %d.%02d%cC\n", buf[0], s, buf[1], buf[0], temperat, 0xb0);*/
-		/*printf("LM75 at addr 0x%02x: %c%d.%02d%cC\n", i2c_sensor_addr, s, buf[0], temperat, 0xb0);*/
+		printf("transmitted (%u): ", size);
+		for (argNo=0; argNo < size; ++argNo) {
+			printf(" 0x%02x", buf[argNo]);
+			/*printf("read result: 0x%02X, %c0x%02X = %d.%02d%cC\n", buf[0], s, buf[1], buf[0], temperat, 0xb0);*/
+			/*printf("LM75 at addr 0x%02x: %c%d.%02d%cC\n", i2c_sensor_addr, s, buf[0], temperat, 0xb0);*/
+		}
+		printf("\n");
 	} else {
 		printf("received error\n");
 	}

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 /*#include <stdint.h>*/
+#include <math.h>
 
 #include "akuhei2c.h"
 
@@ -12,15 +13,11 @@
 /* My custom RDArgs */
 struct RDArgs *myrda;
 
-#define TEMPLATE "A=Address/A,R=Register,W=WordMode/S"
+/*#define TEMPLATE "A=Address/A,R=Register,V=Value,W=WordMode/S"*/
+#define TEMPLATE "A=Address/A,T=Thyst"
 #define OPT_ADDR 0
-#define OPT_REGISTER  1
-#define OPT_READMODE  2
-LONG result[3];
-
-void __check_abort(int) {
-	PutStr("Ctrl-C!!!\n");
-}
+#define OPT_THYST 1
+LONG result[2];
 
 UBYTE atoh(char c) {
 	UBYTE r;
@@ -36,8 +33,36 @@ UBYTE atoh(char c) {
 	return r;
 }
 
-UBYTE stoi(STRPTR s) {
-	UBYTE r;
+/* fixed point notation U16Q8 */
+ULONG stof(STRPTR s) {
+	ULONG prec = 10;
+	ULONG r = 0;
+	while(*s) {
+		if((*s == '.') || (*s == ',')) {
+			++s;
+			break;
+		} else {
+			r *= 10;
+			r += atoh(*s) << 8;
+			printf("next digit: %c -> 0x%04lx\n", *s, r);
+		}
+		++s;
+	}
+	printf("decimal point: 0x%04lx\n", r);
+	while(*s && prec) {
+		r += (atoh(*s) << 8) / prec;
+		printf("next digit: %c", *s);
+		printf(" -> 0x%04x", atoh(*s) << 8);
+		printf(" -> 0x%04lx", (atoh(*s) << 8) / prec);
+		printf(" -> 0x%04lx\n", r);
+		prec *= 10;
+		++s;
+	}
+	return r;
+}
+
+ULONG stoi(STRPTR s) {
+	ULONG r;
 	while(*s) {
 		r <<= 4;
 		if((*s == 'x') || (*s == 'X'))
@@ -48,11 +73,6 @@ UBYTE stoi(STRPTR s) {
 	}
 	return r;
 }
-
-typedef enum {
-	READ_BYTE,
-	READ_WORD
-} read_mode_t;
 
 int main(int argc, char **argv)
 {
@@ -72,15 +92,12 @@ int main(int argc, char **argv)
 	STRPTR sptr;
 	UBYTE **arguments;
 	UBYTE k;
-
-	/*struct sigaction act;*/
-
-	read_mode_t read_mode;
+	float thyst;
+	ULONG thyst_fp;
 
 	size = 1;
-	chip_addr = 0;
+	chip_addr = 0x48;
 	reg_addr = 0;
-	read_mode = READ_BYTE;
 
 #ifdef DEBUG
 	sc.in_isr = FALSE;
@@ -95,13 +112,6 @@ int main(int argc, char **argv)
 		printf("   argument #%d = >%s<\n", argNo, argv[argNo]);
 	}
 
-	/*memset(&act, 0, sizeof(act));
-	act.sa_sigaction = __check_abort;
-	sigaction(SIGINT, &act, NULL);*/
-
-	/*signal(SIGINT, __check_abort);*/
-	/*Delay(1);*/
-
 	/* Need to ask DOS for a RDArgs structure */
 	if (myrda = (struct RDArgs *)AllocDosObject(DOS_RDARGS, NULL)) {
 	/* parse my command line */
@@ -110,21 +120,16 @@ int main(int argc, char **argv)
 				s = strlen((STRPTR)result[OPT_ADDR]);
 				if((s == 2) || (strncmp((STRPTR)result[OPT_ADDR], "0x", 2) == 0) && (s == 4)) {
 					chip_addr = stoi((STRPTR)result[OPT_ADDR]);
+					if(chip_addr < 8)
+						chip_addr += 0x48;
 					printf("Chip address Specified : >%s<, len=%d -> 0x%02X\n", (STRPTR)result[OPT_ADDR], strlen((STRPTR)result[OPT_ADDR]), chip_addr);
-					if(result[OPT_REGISTER]) {
-						switch(strlen((STRPTR)result[OPT_REGISTER])) {
-							case 2:
-							case 4:
-								reg_addr = stoi((STRPTR)result[OPT_REGISTER]);
-								printf("Register address Specified : >%s< -> 0x%02X\n", (STRPTR)result[OPT_REGISTER], reg_addr);
-								break;
-							default:
-								break;
-						}
-					}
-					if(result[OPT_READMODE]) {
-						size = 2;
-					}
+				}
+				if(result[OPT_THYST]) {
+					s = strlen((STRPTR)result[OPT_THYST]);
+					size = 3;
+					thyst = atof((STRPTR)result[OPT_THYST]);
+					thyst_fp = stof((STRPTR)result[OPT_THYST]);
+					printf("Register address Specified : >%s<, len=%u -> %f -> 0x%04lx\n", (STRPTR)result[OPT_THYST], s, thyst, thyst_fp);
 				}
 			}
 			FreeArgs(myrda);
@@ -177,9 +182,17 @@ int main(int argc, char **argv)
 	clockport_write(&sc, I2CCON, ctrl);
 	Delay(5);
 
-	buf[0] = 0xAC; /* configuration register */
-	buf[1] = 0x8C; /* high resolution */
-	/*pca9564_write(&sc, i2c_sensor_addr, 2, &buf);*/
+	buf[0] = 0x02; /* Thyst register */
+
+	for (argNo=size-1; argNo > 0; --argNo) {
+		buf[argNo] = (UBYTE)(0xFF & thyst_fp);
+		thyst_fp >>= 8;
+	}
+
+	printf("transmitting (%u bytes):", size);
+	for (argNo=0; argNo < size; ++argNo)
+		printf(" 0x%02x", buf[argNo]);
+	printf("\n");
 
 	s = clockport_read(&sc, I2CSTA);
 
@@ -188,16 +201,16 @@ int main(int argc, char **argv)
 		pca9564_dump_state(&sc);
 	}
 
-	/* read 2 bytes from 0x48 */
-	/* pca9564_read(&sc, 0x48, size, &buf); */
-	buf[0] = 0x00;
-	buf[1] = 0x00;
-	pca9564_read(&sc, chip_addr, size, &buf);
+	pca9564_write(&sc, chip_addr, size, &buf);
 
 	if (sc.cur_result == RESULT_OK) {
-		printf("received (%u): 0x%02x%02x\n", size, buf[0], buf[1]);
-		/*printf("read result: 0x%02X, %c0x%02X = %d.%02d%cC\n", buf[0], s, buf[1], buf[0], temperat, 0xb0);*/
-		/*printf("LM75 at addr 0x%02x: %c%d.%02d%cC\n", i2c_sensor_addr, s, buf[0], temperat, 0xb0);*/
+		printf("transmitted (%u): ", size);
+		for (argNo=0; argNo < size; ++argNo) {
+			printf(" 0x%02x", buf[argNo]);
+			/*printf("read result: 0x%02X, %c0x%02X = %d.%02d%cC\n", buf[0], s, buf[1], buf[0], temperat, 0xb0);*/
+			/*printf("LM75 at addr 0x%02x: %c%d.%02d%cC\n", i2c_sensor_addr, s, buf[0], temperat, 0xb0);*/
+		}
+		printf("\n");
 	} else {
 		printf("received error\n");
 	}

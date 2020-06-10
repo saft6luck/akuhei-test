@@ -2,6 +2,7 @@
 /*#include <stdlib.h>*/
 
 #include <proto/exec.h>
+#include <proto/dos.h>
 
 #include <exec/types.h>
 #include <exec/memory.h>
