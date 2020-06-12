@@ -127,8 +127,8 @@ pca9564_dump_state(pca9564_state_t *sp)
 }
 
 /* Interrupt service routine. */
-__amigainterrupt void
-pca9564_isr(__reg("a1") pca9564_state_t *sp)
+__interrupt void
+pca9564_isr(REG(a1, pca9564_state_t *sp))
 {
 	UBYTE v;
 

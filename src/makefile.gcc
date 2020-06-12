@@ -1,11 +1,14 @@
 CC      = m68k-amigaos-gcc
-CFLAGS  = -O2 -fstrength-reduce -fomit-frame-pointer -msmall-code -fbaserel -c
+#CFLAGS  = -O2 -fstrength-reduce -fomit-frame-pointer -msmall-code -fbaserel -c
+CFLAGS  = -O2 -c
 LDFLAGS = -noixemul
 LDLIBS  =
 
-TARGETS := lm75 akutest i2cget i2cset akuhei2c i2cdetect lm75th
+TARGETS := lm75 akutest i2cget i2cset i2cdetect lm75th
 
-OBJECTS := $(addsuffix .o, $(TARGETS) )
+OBJECTS := $(addsuffix .o, $(TARGETS)) akuhei2c.o
+
+RMRF = rm -rf 
 
 all: $(TARGETS)
 

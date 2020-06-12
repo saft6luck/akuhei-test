@@ -10,9 +10,11 @@
 
 #include <hardware/intbits.h>
 
+#include "SDI_compiler.h"
+
 #define DBG			1
 
-#define CLOCKPORT_BASE		0xD80001
+#define CLOCKPORT_BASE		(UBYTE *)0xD80001
 #define CLOCKPORT_STRIDE	4
 
 #define I2CSTA			0
@@ -90,7 +92,7 @@ typedef struct {
 
 UBYTE clockport_read(pca9564_state_t *, UBYTE);
 void clockport_write(pca9564_state_t *, UBYTE, UBYTE);
-__amigainterrupt void pca9564_isr(pca9564_state_t *);
+__interrupt void pca9564_isr(REG(a1, pca9564_state_t *));
 void pca9564_dump_state(pca9564_state_t *);
 void pca9564_send_start(pca9564_state_t *);
 void pca9564_read(pca9564_state_t *, UBYTE, ULONG, UBYTE **);

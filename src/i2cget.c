@@ -18,10 +18,6 @@ struct RDArgs *myrda;
 #define OPT_READMODE  2
 LONG result[3];
 
-void __check_abort(int) {
-	PutStr("Ctrl-C!!!\n");
-}
-
 UBYTE atoh(char c) {
 	UBYTE r;
 	if ((c <='9') && (c >= '0')) {
@@ -94,13 +90,6 @@ int main(int argc, char **argv)
 	for (argNo=0; argNo < argc; ++argNo) {
 		printf("   argument #%d = >%s<\n", argNo, argv[argNo]);
 	}
-
-	/*memset(&act, 0, sizeof(act));
-	act.sa_sigaction = __check_abort;
-	sigaction(SIGINT, &act, NULL);*/
-
-	/*signal(SIGINT, __check_abort);*/
-	/*Delay(1);*/
 
 	/* Need to ask DOS for a RDArgs structure */
 	if (myrda = (struct RDArgs *)AllocDosObject(DOS_RDARGS, NULL)) {

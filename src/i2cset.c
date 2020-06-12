@@ -20,10 +20,6 @@ struct RDArgs *myrda;
 #define OPT_WRITEMODE  3
 LONG result[3];
 
-void __check_abort(int) {
-	PutStr("Ctrl-C!!!\n");
-}
-
 UBYTE atoh(char c) {
 	UBYTE r;
 	if ((c <='9') && (c >= '0')) {
