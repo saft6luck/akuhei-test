@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 /*#include <stdint.h>*/
-#include <math.h>
+/*#include <math.h>*/
 
 #include "akuhei2c.h"
 
@@ -92,7 +92,7 @@ int main(int argc, char **argv)
 	STRPTR sptr;
 	UBYTE **arguments;
 	UBYTE k;
-	float thyst;
+	/*float thyst;*/
 	ULONG thyst_fp;
 
 	size = 1;
@@ -127,9 +127,10 @@ int main(int argc, char **argv)
 				if(result[OPT_THYST]) {
 					s = strlen((STRPTR)result[OPT_THYST]);
 					size = 3;
-					thyst = atof((STRPTR)result[OPT_THYST]);
+					/*thyst = atof((STRPTR)result[OPT_THYST]);*/
 					thyst_fp = stof((STRPTR)result[OPT_THYST]);
-					printf("Register address Specified : >%s<, len=%u -> %f -> 0x%04lx\n", (STRPTR)result[OPT_THYST], s, thyst, thyst_fp);
+					/*printf("Register address Specified : >%s<, len=%u -> %f -> 0x%04lx\n", (STRPTR)result[OPT_THYST], s, thyst, thyst_fp);*/
+					printf("Register address Specified : >%s<, len=%u -> 0x%04lx\n", (STRPTR)result[OPT_THYST], s, thyst_fp);
 				}
 			}
 			FreeArgs(myrda);
