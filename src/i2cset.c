@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 	/* Need to ask DOS for a RDArgs structure */
 	if (myrda = (struct RDArgs *)AllocDosObject(DOS_RDARGS, NULL)) {
 	/* parse my command line */
-		if (ReadArgs(TEMPLATE, result, myrda) && (strlen(result[0]) > 0)) {
+		if (ReadArgs(TEMPLATE, result, myrda) && (strlen((char *)result[0]) > 0)) {
 			if(result[OPT_ADDR]) {
 				s = strlen((STRPTR)result[OPT_ADDR]);
 				if((s == 2) || (strncmp((STRPTR)result[OPT_ADDR], "0x", 2) == 0) && (s == 4)) {
