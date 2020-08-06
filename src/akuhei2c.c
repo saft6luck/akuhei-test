@@ -1,7 +1,5 @@
 #include "akuhei2c.h"
 
-/*int _chkabort(void) { PutSrt("Ctrl-C!\n"); return(0); };*/
-
 UBYTE
 clockport_read(pca9564_state_t *sp, UBYTE reg)
 {
@@ -58,26 +56,12 @@ pca9564_exec(pca9564_state_t *sp, UBYTE address, ULONG size, UBYTE **buf)
 
 	pca9564_send_start(sp);
 
-/*	Wait(sp->sigmask_intr || CheckSignal(SIGBREAKF_CTRL_C));*/
-	Wait(sp->sigmask_intr || (SetSignal(0L, SIGBREAKF_CTRL_C) & SIGBREAKF_CTRL_C));
+	Wait(sp->sigmask_intr);
 
-/*	Wait(sp->sigmask_intr);*/
-
-/*	if(CheckSignal(SIGBREAKF_CTRL_C))
-		printf("woof woof CTRL-C!\n");*/
-	if(SetSignal(0L, SIGBREAKF_CTRL_C) & SIGBREAKF_CTRL_C)
-		printf("woof woof CTRL-C!\n");
-
-/*	if (sp->cur_result != RESULT_OK) {
+	if (sp->cur_result != RESULT_OK) {
 		printf("OP: failed!\n");
 		pca9564_dump_state(sp);
-	}*/
-#ifdef DEBUG
-	else {
-		printf("OP: successful!\n");
-		pca9564_dump_state(sp);
 	}
-#endif /* DEBUG */
 
 	sp->buf_size = 0;
 	sp->slave_addr = 0;
@@ -127,8 +111,10 @@ pca9564_dump_state(pca9564_state_t *sp)
 }
 
 /* Interrupt service routine. */
-__interrupt void
-pca9564_isr(REG(a1, pca9564_state_t *sp))
+__saveds
+__interrupt
+void
+pca9564_isr(pca9564_state_t *sp __asm("a1"))
 {
 	UBYTE v;
 

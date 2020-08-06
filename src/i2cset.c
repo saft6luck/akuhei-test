@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 /*#include <stdint.h>*/
 
 #include "akuhei2c.h"
@@ -106,7 +107,7 @@ int main(int argc, char **argv)
 				}
 				if(result[OPT_REGISTER]) {
 					s = strlen((STRPTR)result[OPT_REGISTER]);
-					if(strncmp((STRPTR)result[OPT_REGISTER]) == 0)
+					if(strncmp((STRPTR)result[OPT_REGISTER], "0x", 2) == 0)
 						s -= 2;
 					if(s%2)
 						printf("invalid length of argument value (%u) >%s<.\n", s--, (STRPTR)result[OPT_REGISTER]);
@@ -116,7 +117,7 @@ int main(int argc, char **argv)
 				}
 				if(result[OPT_VALUE]) {
 					s = strlen((STRPTR)result[OPT_VALUE]);
-					if(strncmp((STRPTR)result[OPT_VALUE]) == 0)
+					if(strncmp((STRPTR)result[OPT_VALUE], "0x", 2) == 0)
 						s -= 2;
 					if(s%2)
 						printf("invalid length of argument value (%u) >%s<.\n", s--, (STRPTR)result[OPT_VALUE]);
