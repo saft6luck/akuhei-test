@@ -6,28 +6,6 @@
 
 #include "akuhei2c.h"
 
-/*#define DEBUG			1 */
-
-/* My custom RDArgs */
-struct RDArgs *myrda;
-
-#define TEMPLATE "A=Address/N"
-LONG result[1];
-
-UBYTE atoh(char c) {
-	UBYTE r;
-	if ((c <='9') && (c >= '0')) {
-		r = c - '0';
-	} else {
-		r = 10 + c;
-		if ((c <= 'F') && (c >= 'A'))
-			r -= 'A';
-		else
-			r -= 'a';
-	}
-	return r;
-}
-
 int main(int argc, char **argv)
 {
         pca9564_state_t sc;
@@ -44,10 +22,6 @@ int main(int argc, char **argv)
 	LONG *strp;
 	size = 2;
 
-#ifdef DEBUG
-        sc.in_isr = FALSE;
-        sc.isr_called = 0;
-#endif /* DEBUG */
         sc.cp = CLOCKPORT_BASE;
         sc.cur_op = OP_NOP;
 
@@ -91,9 +65,6 @@ int main(int argc, char **argv)
 	Delay(5);
 
 	i2c_sensor_addr = 0x48;
-
-	/* read 2 bytes from 0x48 */
-	/* pca9564_read(&sc, 0x48, size, &buf); */
 	pca9564_read(&sc, i2c_sensor_addr, size, &buf);
 
 	if (sc.cur_result == RESULT_OK) {
@@ -108,8 +79,7 @@ int main(int argc, char **argv)
 		temperat *= 100;
 		temperat >>= 8;
 
-		/*printf("LM75 at addr 0x%02x: %c%d.%02d%cC\n", i2c_sensor_addr, s, buf[0], temperat, 0xb0);*/
-		printf("Ambient: %c%d.%02d%cC, ", s, buf[0], temperat, 0xb0);
+		printf("MCU: %c%d.%02d%cC; ", s, buf[0], temperat, 0xb0);
 
 		clockport_write(&sc, I2CCON, 0);
 	}
@@ -131,8 +101,7 @@ int main(int argc, char **argv)
 		temperat *= 100;
 		temperat >>= 8;
 
-		/*rintf("LM75 at addr 0x%02x: %c%d.%02d%cC\n", i2c_sensor_addr, s, buf[0], temperat, 0xb0);*/
-		printf("CPU: %c%d.%02d%cC, ", s, buf[0], temperat, 0xb0);
+		printf("CPU: %c%d.%02d%cC; ", s, buf[0], temperat, 0xb0);
 
 		clockport_write(&sc, I2CCON, 0);
 	}
@@ -144,7 +113,7 @@ int main(int argc, char **argv)
 
 	if (sc.cur_result == RESULT_OK) {
 
-		printf("PWM %d%%, ", (25600*buf[0] + 256*buf[1])/512);
+		printf("PWM %d%%, ", (100*(256*buf[0] + buf[1]))/512);
 
 		clockport_write(&sc, I2CCON, 0);
 	}
@@ -156,7 +125,7 @@ int main(int argc, char **argv)
 
 	if (sc.cur_result == RESULT_OK) {
 
-		printf("Tacho max %dHz, current %dHz\n", buf[0], buf[1]);
+		printf("Tacho max %drpm, current %drpm\n", 30 * buf[0], 30 * buf[1]);
 
 		clockport_write(&sc, I2CCON, 0);
 	}
@@ -166,10 +135,6 @@ int main(int argc, char **argv)
 	RemIntServer(INTB_EXTER, int6);
 	FreeMem(int6, sizeof(struct Interrupt));
 	FreeSignal(sc.sig_intr);
-
-#ifdef DEBUG
-	printf("ISR was called %d times\n", sc.isr_called);
-#endif /* DEBUG */
 
 	return 0;
 }
