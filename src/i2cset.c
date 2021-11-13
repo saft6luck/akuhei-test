@@ -89,11 +89,12 @@ int main(int argc, char **argv)
 	sc.cp = CLOCKPORT_BASE;
 	sc.cur_op = OP_NOP;
 
+#ifdef DEBUG
 	printf("Specified parameters (%d):\n", argc);
-
 	for (argNo=0; argNo < argc; ++argNo) {
 		printf("   argument #%d = >%s<\n", argNo, argv[argNo]);
 	}
+#endif // DEBUG
 
 	/* Need to ask DOS for a RDArgs structure */
 	if (myrda = (struct RDArgs *)AllocDosObject(DOS_RDARGS, NULL)) {
@@ -103,7 +104,9 @@ int main(int argc, char **argv)
 				s = strlen((STRPTR)result[OPT_ADDR]);
 				if((s == 2) || (strncmp((STRPTR)result[OPT_ADDR], "0x", 2) == 0) && (s == 4)) {
 					chip_addr = stoi((STRPTR)result[OPT_ADDR]);
+#ifdef DEBUG
 					printf("Chip address Specified : >%s<, len=%d -> 0x%02X\n", (STRPTR)result[OPT_ADDR], strlen((STRPTR)result[OPT_ADDR]), chip_addr);
+#endif // DEBUG
 				}
 				if(result[OPT_REGISTER]) {
 					s = strlen((STRPTR)result[OPT_REGISTER]);
@@ -113,7 +116,9 @@ int main(int argc, char **argv)
 						printf("invalid length of argument value (%u) >%s<.\n", s--, (STRPTR)result[OPT_REGISTER]);
 					size = s / 2;
 					reg_addr = stoi((STRPTR)result[OPT_REGISTER]);
+#ifdef DEBUG
 					printf("Register address Specified : >%s<, len=%u -> %u\n", (STRPTR)result[OPT_REGISTER], s, reg_addr);
+#endif // DEBUG
 				}
 				if(result[OPT_VALUE]) {
 					s = strlen((STRPTR)result[OPT_VALUE]);
@@ -123,14 +128,16 @@ int main(int argc, char **argv)
 						printf("invalid length of argument value (%u) >%s<.\n", s--, (STRPTR)result[OPT_VALUE]);
 					size += s / 2;
 					reg_value = stoi((STRPTR)result[OPT_VALUE]);
+#ifdef DEBUG
 					printf("Register value Specified : >%s<, len=%u -> 0x%lX\n", (STRPTR)result[OPT_VALUE], s, reg_value);
+#endif // DEBUG
 				}
 			}
+			PutStr("Usage: " TEMPLATE "\n");
 			FreeArgs(myrda);
 		} else {
 			printf("ReadArgs returned NULL\n");
 		}
-		PutStr("Usage: " TEMPLATE "\n");
 		FreeDosObject(DOS_RDARGS, myrda);
 	} else {
 		PutStr("Usage: " TEMPLATE "\n");
@@ -157,7 +164,7 @@ int main(int argc, char **argv)
 		int6->is_Data = (APTR)&sc;
 		int6->is_Code = pca9564_isr;
 
-		AddIntServer(INTB_EXTER, int6); 
+		AddIntServer(INTB_EXTER, int6);
 	} else {
 		printf("Can't allocate memory for interrupt node\n");
 		FreeSignal(sc.sig_intr);
@@ -201,8 +208,6 @@ int main(int argc, char **argv)
 		printf("transmitted (%u): ", size);
 		for (argNo=0; argNo < size; ++argNo) {
 			printf(" 0x%02x", buf[argNo]);
-			/*printf("read result: 0x%02X, %c0x%02X = %d.%02d%cC\n", buf[0], s, buf[1], buf[0], temperat, 0xb0);*/
-			/*printf("LM75 at addr 0x%02x: %c%d.%02d%cC\n", i2c_sensor_addr, s, buf[0], temperat, 0xb0);*/
 		}
 		printf("\n");
 	} else {

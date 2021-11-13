@@ -13,7 +13,7 @@
 //#include "SDI_interrupt.h"
 //#include "SDI_compiler.h"
 
-#define DBG			1
+#define DEBUG			1
 
 #define CLOCKPORT_BASE		(UBYTE *)0xD80001
 #define CLOCKPORT_STRIDE	4

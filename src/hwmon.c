@@ -8,8 +8,8 @@
 
 int main(int argc, char **argv)
 {
-        pca9564_state_t sc;
-        struct Interrupt *int6;
+  pca9564_state_t sc;
+  struct Interrupt *int6;
 
 	UBYTE ctrl;
 	UBYTE *buf;

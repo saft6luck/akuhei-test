@@ -86,12 +86,6 @@ int main(int argc, char **argv)
 	sc.cp = CLOCKPORT_BASE;
 	sc.cur_op = OP_NOP;
 
-	printf("Specified parameters (%d):\n", argc);
-
-	for (argNo=0; argNo < argc; ++argNo) {
-		printf("   argument #%d = >%s<\n", argNo, argv[argNo]);
-	}
-
 	/* Need to ask DOS for a RDArgs structure */
 	if (myrda = (struct RDArgs *)AllocDosObject(DOS_RDARGS, NULL)) {
 	/* parse my command line */
@@ -148,7 +142,7 @@ int main(int argc, char **argv)
 		int6->is_Data = (APTR)&sc;
 		int6->is_Code = pca9564_isr;
 
-		AddIntServer(INTB_EXTER, int6); 
+		AddIntServer(INTB_EXTER, int6);
 	} else {
 		printf("Can't allocate memory for interrupt node\n");
 		FreeSignal(sc.sig_intr);
@@ -167,10 +161,6 @@ int main(int argc, char **argv)
 	clockport_write(&sc, I2CCON, ctrl);
 	Delay(5);
 
-	buf[0] = 0xAC; /* configuration register */
-	buf[1] = 0x8C; /* high resolution */
-	/*pca9564_write(&sc, i2c_sensor_addr, 2, &buf);*/
-
 	s = clockport_read(&sc, I2CSTA);
 
 	if(s != I2CSTA_IDLE) {
@@ -185,9 +175,11 @@ int main(int argc, char **argv)
 	pca9564_read(&sc, chip_addr, size, &buf);
 
 	if (sc.cur_result == RESULT_OK) {
-		printf("received (%u): 0x%02x%02x\n", size, buf[0], buf[1]);
-		/*printf("read result: 0x%02X, %c0x%02X = %d.%02d%cC\n", buf[0], s, buf[1], buf[0], temperat, 0xb0);*/
-		/*printf("LM75 at addr 0x%02x: %c%d.%02d%cC\n", i2c_sensor_addr, s, buf[0], temperat, 0xb0);*/
+		//printf("received (%u): 0x%02x%02x\n", size, buf[0], buf[1]);
+		if(size == 1)
+			printf("0x%02x\n", buf[0]);
+		else
+			printf("0x%02x%02x\n", buf[0], buf[1]);
 	} else {
 		printf("received error\n");
 	}

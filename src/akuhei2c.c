@@ -111,7 +111,7 @@ pca9564_dump_state(pca9564_state_t *sp)
 }
 
 /* Interrupt service routine. */
-__saveds
+/*__saveds*/
 __interrupt
 void
 pca9564_isr(pca9564_state_t *sp __asm("a1"))

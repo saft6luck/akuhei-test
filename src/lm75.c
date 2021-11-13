@@ -11,8 +11,9 @@
 /* My custom RDArgs */
 struct RDArgs *myrda;
 
-#define TEMPLATE "A=Address/N"
-LONG result[1];
+#define TEMPLATE "A=Address/A/N/M"
+LONG *result;
+UBYTE **adarray;
 
 UBYTE atoh(char c) {
 	UBYTE r;
@@ -33,21 +34,15 @@ int main(int argc, char **argv)
         pca9564_state_t sc;
         struct Interrupt *int6;
 
-	UBYTE ctrl;
 	UBYTE *buf;
-	UBYTE size;
-	UBYTE p;
-	UBYTE s;
+	UBYTE ctrl, size, p, s;
+	UWORD n;
 	unsigned short temperat;
 
 	UBYTE i2c_sensor_addr;
 	LONG *strp;
 	size = 2;
 
-#ifdef DEBUG
-        sc.in_isr = FALSE;
-        sc.isr_called = 0;
-#endif /* DEBUG */
         sc.cp = CLOCKPORT_BASE;
         sc.cur_op = OP_NOP;
 
@@ -86,70 +81,50 @@ int main(int argc, char **argv)
 	/*ctrl = I2CCON_CR_146KHZ | I2CCON_ENSIO;*/
 	/*ctrl = I2CCON_CR_217KHZ | I2CCON_ENSIO;*/
 	/*ctrl = I2CCON_CR_288KHZ | I2CCON_ENSIO;*/
-	ctrl = I2CCON_CR_330KHZ | I2CCON_ENSIO;
-	clockport_write(&sc, I2CCON, ctrl);
-	Delay(5);
 
 	i2c_sensor_addr = 0x48;
 
 	/* Need to ask DOS for a RDArgs structure */
 	if (myrda = (struct RDArgs *)AllocDosObject(DOS_RDARGS, NULL)) {
-	/* parse my command line */
-		if (ReadArgs(TEMPLATE, result, myrda)) { /* && (strlen(result[0]) > 0)) {*/
-			/*strp = (LONG *)result[0];
-			if (strncmp(result[0], "0x", 2) == 0)
-				strp += 2;
-			i2c_sensor_addr = atoh(strp[0]);
-			i2c_sensor_addr <<= 4;
-			i2c_sensor_addr += atoh(strp[1]);*/
-			if(result[0]) {
-				i2c_sensor_addr += *((LONG *)result[0]);
-				/*VPrintf("user specified LM75 at addr 0x%02x\n", i2c_sensor_addr);*/
-				/*printf("user specified LM75 at addr 0x%02x\n", i2c_sensor_addr);*/
+		/* parse my command line */
+		if (ReadArgs(TEMPLATE, result, myrda)) {
+			adarray = (UBYTE**)result[0];
+			for(n=0; adarray[n]; ++n) {
+				ctrl = I2CCON_CR_330KHZ | I2CCON_ENSIO;
+				//clockport_write(&sc, I2CCON, ctrl);
+				clockport_write(&sc, I2CCON, I2CCON_CR_330KHZ | I2CCON_ENSIO);
+				Delay(5);
+
+				i2c_sensor_addr = 0x48 + *((LONG *)adarray[n]);
+
+				buf[0] = 0x00; /* configuration register */
+				buf[1] = 0x00; /* high resolution */
+
+				pca9564_read(&sc, i2c_sensor_addr, size, &buf);
+
+				if (sc.cur_result == RESULT_OK) {
+					s = ' ';
+					if (buf[0] & 0x80) {
+						buf[0] ^= 0xFF;
+						buf[1] ^= 0xFF;
+						s = '-';
+					}
+
+					temperat = buf[1];
+					temperat *= 100;
+					temperat >>= 8;
+
+					//printf("0x02%x: %c%d.%02d%cC", i2c_sensor_addr, s, buf[0], temperat, 0xb0);
+					//printf("%s0x02%x: %c%d.%02d%cC", n==0?"":", ", i2c_sensor_addr, s, buf[0], temperat, 0xb0);
+					printf("%s0x02%x: %c%d.%02dC", n==0?"":", ", i2c_sensor_addr, s, buf[0], temperat);
+
+					clockport_write(&sc, I2CCON, 0);
+				}
 			}
 			FreeArgs(myrda);
-
-
-		/*} else {
-			printf("ReadArgs returned NULL\n");*/
+			printf("\n");
 		}
 		FreeDosObject(DOS_RDARGS, myrda);
-	/*} else {
-		printf("allocDosObject returned NULL.\n");*/
-	}
-
-	buf[0] = 0xAC; /* configuration register */
-	buf[1] = 0x8C; /* high resolution */
-	/*pca9564_write(&sc, i2c_sensor_addr, 2, &buf);*/
-
-	/* read 2 bytes from 0x48 */
-	/* pca9564_read(&sc, 0x48, size, &buf); */
-	pca9564_read(&sc, i2c_sensor_addr, size, &buf);
-
-	if (sc.cur_result == RESULT_OK) {
-		s = ' ';
-		if (buf[0] & 0x80) {
-			buf[0] ^= 0xFF;
-			buf[1] ^= 0xFF;
-			s = '-';
-		}
-
-		temperat = buf[1];
-		temperat *= 100;
-		temperat >>= 8;
-
-		/*for(p = 8; p > 0; --p)
-			printf("%c", buf[0] & (0x01 << (p-1)) ? '1' : '0');
-		printf(" ");
-		for(p = 8; p > 0; --p)
-			printf("%c", buf[1] & (0x01 << (p-1)) ? '1' : '0');
-		printf("\n");*/
-		/*printf("read result: 0x%02X, %c0x%02X = %d.%02d%cC\n", buf[0], s, buf[1], buf[0], temperat, 0xb0);*/
-		/*VPrintf("LM75 at addr 0x%02x: %c%d.%02d%cC\n", i2c_sensor_addr, s, buf[0], temperat, 0xb0);*/
-		printf("LM75 at addr 0x%02x: %c%d.%02d%cC\n", i2c_sensor_addr, s, buf[0], temperat, 0xb0);
-
-		ctrl = 0;
-		clockport_write(&sc, I2CCON, ctrl);
 	}
 
 	FreeMem(buf, size);
@@ -157,10 +132,6 @@ int main(int argc, char **argv)
 	RemIntServer(INTB_EXTER, int6);
 	FreeMem(int6, sizeof(struct Interrupt));
 	FreeSignal(sc.sig_intr);
-
-#ifdef DEBUG
-	printf("ISR was called %d times\n", sc.isr_called);
-#endif /* DEBUG */
 
 	return 0;
 }
