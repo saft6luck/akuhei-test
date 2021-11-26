@@ -85,10 +85,11 @@ typedef struct {
 	ULONG bytes_count;
 
 	UBYTE slave_addr;
-/*#ifdef DEBUG*/
+#ifdef DEBUG
 	int isr_called; /* how may times ISR was called */
 	BOOL in_isr;
-/*#endif  DEBUG */
+	unsigned long long isr_states;
+#endif  /* DEBUG */
 } pca9564_state_t;
 
 UBYTE clockport_read(pca9564_state_t *, UBYTE);

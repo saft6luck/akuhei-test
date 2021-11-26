@@ -2,12 +2,12 @@ CC      = m68k-amigaos-gcc
 #CC      = /opt/m68k-amigaos/bin/m68k-amigaos-gcc
 
 #CFLAGS  = -O2 -fstrength-reduce -fomit-frame-pointer -msmall-code -fbaserel -c
-#CFLAGS  = -fbaserel -c
+CFLAGS  = -fbaserel -c
 #CFLAGS  = -O2 -c
-CFLAGS  = -c
+#CFLAGS  = -c
 
-#LDFLAGS = -noixemul -fbaserel
-LDFLAGS = -noixemul
+LDFLAGS = -noixemul -fbaserel
+#LDFLAGS = -noixemul
 LDLIBS  =
 
 TARGETS := lm75 akutest i2cget i2cset i2cdetect lm75th hwmon

@@ -235,6 +235,7 @@ int main(int argc, char **argv)
 
 #ifdef DEBUG
 	printf("ISR was called %d times\n", sc.isr_called);
+	printf("ISR state history %X\n", sc.isr_states);
 #endif /* DEBUG */
 
 	return 0;

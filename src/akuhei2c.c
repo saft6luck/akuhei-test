@@ -111,20 +111,26 @@ pca9564_dump_state(pca9564_state_t *sp)
 }
 
 /* Interrupt service routine. */
-/*__saveds*/
-__interrupt
-void
-pca9564_isr(pca9564_state_t *sp __asm("a1"))
+__saveds __interrupt void pca9564_isr(pca9564_state_t *sp __asm("a1"))
 {
 	UBYTE v;
 
+#ifdef DEBUG
 	sp->in_isr = TRUE;
 	sp->isr_called++;
+#endif /* DEBUG */
 
 	if (!(clockport_read(sp, I2CCON) & I2CCON_SI)) {
+#ifdef DEBUG
 		sp->in_isr = FALSE;
+#endif /* DEBUG */
 		return;
 	}
+
+#ifdef DEBUG
+	sp->isr_states <<= 8;
+	sp->isr_states |= 0xff & sp->cur_op;
+#endif /* DEBUG */
 
 	switch (sp->cur_op) {
 	case OP_READ:
@@ -242,5 +248,7 @@ pca9564_isr(pca9564_state_t *sp __asm("a1"))
 		break;
 	}
 
+#ifdef DEBUG
 	sp->in_isr = FALSE;
+#endif /* DEBUG */
 }
