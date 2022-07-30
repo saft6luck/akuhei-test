@@ -5,6 +5,7 @@
 
 #include "akuhei2c.h"
 
+//#define DEBUG 1
 #include <dos/dos.h>
 #include <dos/rdargs.h>
 
@@ -14,11 +15,10 @@
 struct RDArgs *myrda;
 
 /*#define TEMPLATE "A=Address/A,R=Register,V=Value,W=WordMode/S"*/
-#define TEMPLATE "A=Address/A,R=Register,V=Value"
+#define TEMPLATE "A=Address/A,V=Value(s)/M"
 #define OPT_ADDR 0
-#define OPT_REGISTER  1
-#define OPT_VALUE  2
-#define OPT_WRITEMODE  3
+#define OPT_VALUE  1
+#define OPT_WRITEMODE  2
 LONG result[3];
 
 UBYTE atoh(char c) {
@@ -66,8 +66,7 @@ int main(int argc, char **argv)
 	int argNo;
 	unsigned short temperat;
 
-	UBYTE chip_addr, reg_addr;
-	ULONG reg_value;
+	UBYTE chip_addr, reg_value[256];
 	LONG *strp;
 	STRPTR sptr;
 	UBYTE **arguments;
@@ -77,9 +76,8 @@ int main(int argc, char **argv)
 
 	read_mode_t read_mode;
 
-	size = 1;
+	size = 0;
 	chip_addr = 0;
-	reg_addr = 0;
 	read_mode = READ_BYTE;
 
 #ifdef DEBUG
@@ -100,50 +98,59 @@ int main(int argc, char **argv)
 	if (myrda = (struct RDArgs *)AllocDosObject(DOS_RDARGS, NULL)) {
 	/* parse my command line */
 		if (ReadArgs(TEMPLATE, result, myrda) && (strlen((char *)result[0]) > 0)) {
-			if(result[OPT_ADDR]) {
-				s = strlen((STRPTR)result[OPT_ADDR]);
-				if((s == 2) || (strncmp((STRPTR)result[OPT_ADDR], "0x", 2) == 0) && (s == 4)) {
-					chip_addr = stoi((STRPTR)result[OPT_ADDR]);
+			s = strlen((STRPTR)result[OPT_ADDR]);
+			if((s == 2) || (strncmp((STRPTR)result[OPT_ADDR], "0x", 2) == 0) && (s == 4)) {
+				chip_addr = stoi((STRPTR)result[OPT_ADDR]);
 #ifdef DEBUG
-					printf("Chip address Specified : >%s<, len=%d -> 0x%02X\n", (STRPTR)result[OPT_ADDR], strlen((STRPTR)result[OPT_ADDR]), chip_addr);
+				KPrintF("Chip address Specified : >%s<, len=%d -> 0x%02X\n", (STRPTR)result[OPT_ADDR], strlen((STRPTR)result[OPT_ADDR]), chip_addr);
 #endif // DEBUG
-				}
-				if(result[OPT_REGISTER]) {
-					s = strlen((STRPTR)result[OPT_REGISTER]);
-					if(strncmp((STRPTR)result[OPT_REGISTER], "0x", 2) == 0)
-						s -= 2;
-					if(s%2)
-						printf("invalid length of argument value (%u) >%s<.\n", s--, (STRPTR)result[OPT_REGISTER]);
-					size = s / 2;
-					reg_addr = stoi((STRPTR)result[OPT_REGISTER]);
-#ifdef DEBUG
-					printf("Register address Specified : >%s<, len=%u -> %u\n", (STRPTR)result[OPT_REGISTER], s, reg_addr);
-#endif // DEBUG
-				}
-				if(result[OPT_VALUE]) {
-					s = strlen((STRPTR)result[OPT_VALUE]);
-					if(strncmp((STRPTR)result[OPT_VALUE], "0x", 2) == 0)
-						s -= 2;
-					if(s%2)
-						printf("invalid length of argument value (%u) >%s<.\n", s--, (STRPTR)result[OPT_VALUE]);
-					size += s / 2;
-					reg_value = stoi((STRPTR)result[OPT_VALUE]);
-#ifdef DEBUG
-					printf("Register value Specified : >%s<, len=%u -> 0x%lX\n", (STRPTR)result[OPT_VALUE], s, reg_value);
-#endif // DEBUG
+			}
+
+			size=0; s=0;
+			if(result[OPT_VALUE]) {
+				while(((STRPTR*)result[OPT_VALUE])[s]) {
+					if(strlen(((STRPTR*)result[OPT_VALUE])[size]) < 3) {
+						reg_value[size] = stoi(((STRPTR*)result[OPT_VALUE])[s]);
+						printf("VALUE %d: >%s< (%d) => 0x%02X = %d\n", size, ((STRPTR*)result[OPT_VALUE])[size], strlen(((STRPTR*)result[OPT_VALUE])[size]), reg_value[size], reg_value[size]);
+						++size;
+					} else {
+						sptr = ((STRPTR*)result[OPT_VALUE])[s];
+						reg_value[size] = 0;
+						while(*sptr) {
+							reg_value[size] *= 16;
+							if((*((const char*)sptr) >= 'a') && (*((const char*)sptr) <= 'f')) {
+								reg_value[size] += 10 + *((const char*)sptr) - 'a';
+							} else {
+								if((*((const char*)sptr) >= 'A') && (*((const char*)sptr) <= 'F')) {
+									reg_value[size] += 10 + *((const char*)sptr) - 'A';
+								} else {
+									reg_value[size] += *((const char*)sptr) - '0';
+								}
+							}
+							if(reg_value[size] > 16) {
+								printf("VALUE %d: >XX< => 0x%02X = %d\n", size, reg_value[size], reg_value[size]);
+								++size;
+								reg_value[size] = 0;
+							}
+							++sptr;
+						}
+					}
+					++s;
 				}
 			}
-			PutStr("Usage: " TEMPLATE "\n");
+
 			FreeArgs(myrda);
 		} else {
-			printf("ReadArgs returned NULL\n");
+			PutStr("Usage: " TEMPLATE "\n");
+			return 1;
 		}
 		FreeDosObject(DOS_RDARGS, myrda);
-	} else {
-		PutStr("Usage: " TEMPLATE "\n");
+//	} else {
+//		PutStr("Usage: " TEMPLATE "\n");
 	}
 
-	if((chip_addr < 0x03) || (chip_addr > 0x77)) {
+//	if((chip_addr < 0x03) || (chip_addr > 0x77)) {
+	if(chip_addr > 0x7f) {
 		PutStr("Chip address out side of range.\n");
 		return 1;
 	}
@@ -171,63 +178,73 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	if (!(buf = AllocMem(size, MEMF_PUBLIC|MEMF_CLEAR))) {
+	if (size && !(buf = AllocMem(size, MEMF_PUBLIC|MEMF_CLEAR))) {
 		printf("Not enough memory to allocate the buffer\n");
+		FreeSignal(sc.sig_intr);
 		return 1;
 		/* XXX: clean up */
 	}
+
+	for (argNo=0; argNo < size; argNo++) {
+		buf[argNo] = (UBYTE)(0xFF & reg_value[argNo]);
+	}
+
+
+	//#ifdef DEBUG
+		printf("transmitting (%u bytes):", size);
+		for (argNo=0; argNo < size; ++argNo)
+			printf("%02d) 0x%02x = %d\n", argNo, reg_value[argNo], reg_value[argNo]);
+			//printf("%02d) 0x%02x = %d\n", argNo, buf[argNo], buf[argNo]);
+		printf("\n");
+	//#endif /* DEBUG */
 
 	/* init the host controller */
 	/*ctrl = I2CCON_CR_59KHZ | I2CCON_ENSIO;*/
 	ctrl = I2CCON_CR_330KHZ | I2CCON_ENSIO;
 	clockport_write(&sc, I2CCON, ctrl);
-	Delay(5);
 
-	buf[0] = reg_addr; /*0xAC;*/ /* configuration register */
-
-	for (argNo=size-1; argNo > 0; --argNo) {
-		buf[argNo] = (UBYTE)(0xFF & reg_value);
-		reg_value >>= 8;
+	if(!chip_addr) {
+		clockport_write(&sc, I2CADR, 0x10);
 	}
+//	Delay(5);
 
-	printf("transmitting (%u bytes):", size);
-	for (argNo=0; argNo < size; ++argNo)
-		printf(" 0x%02x", buf[argNo]);
-	printf("\n");
 
-	s = clockport_read(&sc, I2CSTA);
+/*	s = clockport_read(&sc, I2CSTA);
 
 	if(s != I2CSTA_IDLE) {
 		PutStr("I2C in unappropriate state: \n");
 		pca9564_dump_state(&sc);
-	}
+	}*/
 
+	//pca9564_write(&sc, chip_addr, size, &reg_value);
 	pca9564_write(&sc, chip_addr, size, &buf);
 
+//#ifdef DEBUG
 	if (sc.cur_result == RESULT_OK) {
 		printf("transmitted (%u): ", size);
 		for (argNo=0; argNo < size; ++argNo) {
-			printf(" 0x%02x", buf[argNo]);
+			printf("%02d) 0x%02x = %d\n", argNo, reg_value[argNo], reg_value[argNo]);
+			//printf("%02d) 0x%02x = %d\n", argNo, buf[argNo], buf[argNo]);
 		}
-		printf("\n");
 	} else {
 		printf("received error\n");
 	}
+//#endif /* DEBUG */
 
-	s = clockport_read(&sc, I2CSTA);
+/*	s = clockport_read(&sc, I2CSTA);
 
 	if(s != I2CSTA_IDLE) {
 		PutStr("I2C in unappropriate state: \n");
 		pca9564_dump_state(&sc);
-		Delay(50);
-	}
+	}*/
 
-	ctrl = 0;
-	clockport_write(&sc, I2CCON, ctrl);
+//	ctrl = 0;
+//	clockport_write(&sc, I2CCON, ctrl);
 
-	pca9564_dump_state(&sc);
+//	pca9564_dump_state(&sc);
 
-	FreeMem(buf, size);
+	if(size)
+		FreeMem(buf, size);
 
 	RemIntServer(INTB_EXTER, int6);
 	FreeMem(int6, sizeof(struct Interrupt));

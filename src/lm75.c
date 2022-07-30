@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 
 					//printf("0x02%x: %c%d.%02d%cC", i2c_sensor_addr, s, buf[0], temperat, 0xb0);
 					//printf("%s0x02%x: %c%d.%02d%cC", n==0?"":", ", i2c_sensor_addr, s, buf[0], temperat, 0xb0);
-					printf("%s0x02%x: %c%d.%02dC", n==0?"":", ", i2c_sensor_addr, s, buf[0], temperat);
+					printf("%s0x%02x: %c%d.%02dC", n==0?"":", ", i2c_sensor_addr, s, buf[0], temperat);
 
 					clockport_write(&sc, I2CCON, 0);
 				}

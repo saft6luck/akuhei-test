@@ -3,14 +3,25 @@ CC      = m68k-amigaos-gcc
 
 #CFLAGS  = -O2 -fstrength-reduce -fomit-frame-pointer -msmall-code -fbaserel -c
 CFLAGS  = -fbaserel -c
+CFLAGS += -g -ldebug
+#CFLAGS += -mcrt=nix
 #CFLAGS  = -O2 -c
 #CFLAGS  = -c
 
 LDFLAGS = -noixemul -fbaserel
-#LDFLAGS = -noixemul
-LDLIBS  =
+LDFLAGS += -g
+LDFLAGS += -I./
+#LDFLAGS += -Wl,--amiga-debug-hunk
+#LDFLAGS += -mcrt=nix
+#LDFLAGS += -ldebug
+LDFLAGS += -DDEBUG
 
-TARGETS := lm75 akutest i2cget i2cset i2cdetect lm75th hwmon
+#LDLIBS  = -L/opt/amigaos/m68k-amigaos/ndk-include/clib/
+#LDLIBS  = -ldebug
+
+DBG = -ldebug
+
+TARGETS := lm75 akutest i2cget i2cset i2cdetect i2cstate lm75th hwmon
 
 OBJECTS := $(addsuffix .o, $(TARGETS)) akuhei2c.o
 
@@ -19,7 +30,7 @@ RMRF = rm -rf
 all: $(TARGETS)
 
 $(TARGETS) : % : %.o akuhei2c.o
-	$(CC) -o $@ $(LDFLAGS) $^
+	$(CC) -o $@ $(LDFLAGS) $^ $(DBG)
 
 %.o : %.c
 	$(CC) $(CFLAGS) $<

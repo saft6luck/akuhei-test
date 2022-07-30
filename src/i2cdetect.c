@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 	sc.cp = CLOCKPORT_BASE;
 	sc.cur_op = OP_NOP;
 
-	printf("WARNING! This program can confuse your I2C bus, cause data loss and worse!\nI will probe address range 0x03-0x77.\nYou have been warned!\n");
+	printf("WARNING! This program can confuse your I2C bus, cause data loss and worse!\nI will probe address range 0x08-0x77.\nYou have been warned!\n");
 
 	sc.sig_intr = -1;
 	if ((sc.sig_intr = AllocSignal(-1)) == -1) {
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
 		int6->is_Data = (APTR)&sc;
 		int6->is_Code = pca9564_isr;
 
-		AddIntServer(INTB_EXTER, int6); 
+		AddIntServer(INTB_EXTER, int6);
 	} else {
 		printf("Can't allocate memory for interrupt node\n");
 		FreeSignal(sc.sig_intr);
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 		printf("%02x:", hb);
 		for(lb=0x00; lb<0x10; ++lb) {
 			chip_addr = hb | lb;
-			if((chip_addr > 0x02) && (chip_addr < 0x78)) {
+			if((chip_addr > 0x07) && (chip_addr < 0x78)) {
 				ctrl = I2CCON_CR_330KHZ | I2CCON_ENSIO;
 				clockport_write(&sc, I2CCON, ctrl);
 				Delay(5);
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 				} else {
 					printf(" --");
 				}
-				Flush(Output());
+				//Flush(Output());
 				/*Flush(IDOS->Output(void));*/
 				/*FFlush();*/
 				/*Flush(void);*/

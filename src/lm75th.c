@@ -96,7 +96,7 @@ int main(int argc, char **argv)
 	/*float thyst;*/
 	ULONG thyst_fp;
 
-	size = 1;
+	size = 3;
 	chip_addr = 0x48;
 	reg_addr = 0;
 
@@ -127,7 +127,6 @@ int main(int argc, char **argv)
 				}
 				if(result[OPT_THYST]) {
 					s = strlen((STRPTR)result[OPT_THYST]);
-					size = 3;
 					/*thyst = atof((STRPTR)result[OPT_THYST]);*/
 					thyst_fp = stof((STRPTR)result[OPT_THYST]);
 					/*printf("Register address Specified : >%s<, len=%u -> %f -> 0x%04lx\n", (STRPTR)result[OPT_THYST], s, thyst, thyst_fp);*/
@@ -165,7 +164,7 @@ int main(int argc, char **argv)
 		int6->is_Data = (APTR)&sc;
 		int6->is_Code = pca9564_isr;
 
-		AddIntServer(INTB_EXTER, int6); 
+		AddIntServer(INTB_EXTER, int6);
 	} else {
 		printf("Can't allocate memory for interrupt node\n");
 		FreeSignal(sc.sig_intr);
