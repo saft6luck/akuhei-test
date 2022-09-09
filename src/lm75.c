@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 	LONG *strp;
 	size = 2;
 
-        sc.cp = CLOCKPORT_BASE;
+        sc.cp = (UBYTE *)CLOCKPORT_BASE;
         sc.cur_op = OP_NOP;
 
         sc.sig_intr = -1;

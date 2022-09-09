@@ -20,7 +20,7 @@ int main(void)
 	sc.in_isr = FALSE;
 	sc.isr_called = 0;
 #endif /* DEBUG */
-	sc.cp = CLOCKPORT_BASE;
+	sc.cp = (UBYTE *)CLOCKPORT_BASE;
 	sc.cur_op = OP_NOP;
 
 	sc.sig_intr = -1;
@@ -39,7 +39,7 @@ int main(void)
 		int6->is_Data = (APTR)&sc;
 		int6->is_Code = pca9564_isr;
 
-		AddIntServer(INTB_EXTER, int6); 
+		AddIntServer(INTB_EXTER, int6);
 	} else {
 		printf("Can't allocate memory for interrupt node\n");
 		FreeSignal(sc.sig_intr);
@@ -49,7 +49,7 @@ int main(void)
 	if (!(buf = AllocMem(size, MEMF_PUBLIC|MEMF_CLEAR))) {
 		printf("Not enough memory to allocate the buffer\n");
 		/* XXX: clean up */
-	} 
+	}
 
 	/* dump state */
 	pca9564_dump_state(&sc);
@@ -82,9 +82,9 @@ int main(void)
 	FreeMem(int6, sizeof(struct Interrupt));
 	FreeSignal(sc.sig_intr);
 
-#ifdef DEBUG 
+#ifdef DEBUG
 	printf("ISR was called %d times\n", sc.isr_called);
 #endif /* DEBUG */
-    
+
 	return 0;
 }

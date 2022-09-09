@@ -21,7 +21,7 @@ LDFLAGS += -DDEBUG
 
 DBG = -ldebug
 
-TARGETS := lm75 akutest i2cget i2cset i2cdetect i2cstate lm75th hwmon
+TARGETS := lm75 akutest i2cget i2cset i2cdetect i2cstate lm75th hwmon pcastate
 
 OBJECTS := $(addsuffix .o, $(TARGETS)) akuhei2c.o
 

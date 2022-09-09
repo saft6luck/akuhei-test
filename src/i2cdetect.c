@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 	sc.in_isr = FALSE;
 	sc.isr_called = 0;
 #endif /* DEBUG */
-	sc.cp = CLOCKPORT_BASE;
+	sc.cp = (UBYTE *)CLOCKPORT_BASE;
 	sc.cur_op = OP_NOP;
 
 	printf("WARNING! This program can confuse your I2C bus, cause data loss and worse!\nI will probe address range 0x08-0x77.\nYou have been warned!\n");

@@ -83,7 +83,7 @@ int main(int argc, char **argv)
 	sc.in_isr = FALSE;
 	sc.isr_called = 0;
 #endif /* DEBUG */
-	sc.cp = CLOCKPORT_BASE;
+	sc.cp = (UBYTE *)CLOCKPORT_BASE;
 	sc.cur_op = OP_NOP;
 
 	sc.sig_intr = -1;

@@ -3,10 +3,10 @@
 UBYTE
 clockport_read(pca9564_state_t *sp, UBYTE reg)
 {
-	UBYTE v;
-	UBYTE *ptr;
+	volatile UBYTE v;
+	volatile UBYTE *ptr;
 
-	ptr = sp->cp + (reg * CLOCKPORT_STRIDE);
+	ptr = sp->cp + (reg << CLOCKPORT_STRIDE);
 	v = *ptr;
 #ifdef DEBUG
 	if (!(sp->in_isr))
@@ -21,7 +21,7 @@ clockport_write(pca9564_state_t *sp, UBYTE reg, UBYTE value)
 {
 	UBYTE *ptr;
 
-	ptr = (sp->cp) + (reg * CLOCKPORT_STRIDE);
+	ptr = (sp->cp) + (reg << CLOCKPORT_STRIDE);
 #ifdef DEBUG
 	if (!(sp->in_isr))
 		KPrintF("DEBUG: write %x to %p\n", (int) value, (void*) ptr);
@@ -66,7 +66,7 @@ pca9564_exec(pca9564_state_t *sp, UBYTE address, ULONG size, UBYTE **buf)
 		KPrintF("OP: failed!\n");
 		pca9564_dump_state(sp);
 	}
-	#endif /* DEBUG */
+#endif /* DEBUG */
 
 	sp->buf_size = 0;
 	sp->slave_addr = 0;
@@ -91,6 +91,7 @@ pca9564_dump_state(pca9564_state_t *sp)
 	c = clockport_read(sp, I2CCON);
 	s = clockport_read(sp, I2CSTA);
 	d = clockport_read(sp, I2CDAT);
+#ifdef DEBUG
 	KPrintF("I2CCON: %x, I2CSTA: %x, I2CDAT: %x\n", c, s, d);
 	switch (s) {
     case I2CSTA_SLAW_TX_ACK_RX:     /* 0x18 */
@@ -113,6 +114,7 @@ pca9564_dump_state(pca9564_state_t *sp)
 			KPrintF("SCL_STUCK\n"); break;
 		default: break;
 	}
+#endif /* DEBUG */
 }
 
 /* Interrupt service routine. */

@@ -14,8 +14,8 @@
 
 //#define DEBUG			1
 
-#define CLOCKPORT_BASE		(UBYTE *)0xD80001
-#define CLOCKPORT_STRIDE	4
+#define CLOCKPORT_BASE		0xD80001
+#define CLOCKPORT_STRIDE	2
 
 #define I2CSTA			0
 #define I2CTO			0
