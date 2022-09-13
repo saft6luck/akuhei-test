@@ -12,9 +12,10 @@
 /* My custom RDArgs */
 struct RDArgs *myrda;
 
-#define TEMPLATE "A=Address/A"
+#define TEMPLATE "A=Address/A,S=Stride/N"
 #define OPT_ADDR 0
-LONG result[3];
+#define OPT_STRIDE 1
+LONG result[2];
 
 UBYTE atoh(char c) {
 	UBYTE r;
@@ -43,21 +44,25 @@ ULONG stol(STRPTR s) {
 	return r;
 }
 
-BOOL detect_pca(pca9564_state_t *sc, BOOL strict = TRUE)
+BOOL detect_pca(pca9564_state_t *sc)
 {
 	UBYTE a, d;
 
 	if(clockport_read(sc, I2CSTA) != 0xF8)
 	 	return FALSE;
 
-	if(strict && (clockport_read(sc, I2CADR) != 0x00))
+	if(clockport_read(sc, I2CADR) != 0x00)
 	 	return FALSE;
 
-	if(strict && (clockport_read(sc, I2CDAT) != 0x00))
+	if(clockport_read(sc, I2CDAT) != 0x00)
 	 	return FALSE;
 
-	a = clockport_read(sc, I2CADR),
-	d = clockport_read(sc, I2CDAT),
+	a = clockport_read(sc, I2CADR);
+	if(a != 0)
+		return FALSE;
+	d = clockport_read(sc, I2CDAT);
+	if(d != 0)
+		return FALSE;
 
 	clockport_write(sc, I2CDAT, 0xCC);
 	clockport_write(sc, I2CADR, 0x44);
@@ -73,14 +78,14 @@ BOOL detect_pca(pca9564_state_t *sc, BOOL strict = TRUE)
 
 void print_pca_state(pca9564_state_t *sc)
 {
-	printf("0x%08X  0x%02X 0x%02X 0x%02X 0x%02X", sc->cp,
+	printf("0x%08X  A%02d A%02d 0x%02X 0x%02X 0x%02X 0x%02X", sc->cp, sc->str+1, sc->str,
 																								clockport_read(sc, I2CSTA),
 																								clockport_read(sc, I2CDAT),
 																								clockport_read(sc, I2CADR),
 																								clockport_read(sc, I2CCON));
 };
 
-UBYTE *cps[] = { (UBYTE *)0xD80001, (UBYTE *)0xD84001, (UBYTE *)0xD88001, (UBYTE *)0xD8C001, (UBYTE *)0xD90001 };
+UBYTE *cps[] = { (UBYTE *)0xD80000, (UBYTE *)0xD84000, (UBYTE *)0xD88000, (UBYTE *)0xD8C000, (UBYTE *)0xD90000 };
 
 int main(int argc, char **argv)
 {
@@ -99,7 +104,7 @@ int main(int argc, char **argv)
 	LONG *strp;
 	STRPTR sptr;
 	UBYTE **arguments;
-	UBYTE k;
+	UBYTE k, l;
 
 	size = 1;
 	chip_addr = 0;
@@ -110,6 +115,7 @@ int main(int argc, char **argv)
 	sc.isr_called = 0;
 #endif /* DEBUG */
 	sc.cp = (UBYTE *)CLOCKPORT_BASE;
+	sc.str = CLOCKPORT_STRIDE;
 	sc.cur_op = OP_NOP;
 
 	/* sc.sig_intr = -1;
@@ -121,16 +127,16 @@ int main(int argc, char **argv)
 
 	sc.MainTask = FindTask(NULL);*/
 
-	printf("ClockBase    STA  DAT  ADR  CON detected?\n");
+	printf("ClockBase    A1  A0  STA  DAT  ADR  CON detected?\n");
 
-	if (myrda = (struct RDArgs *)AllocDosObject(DOS_RDARGS, NULL)) {
-	/* parse my command line */
+	if (myrda = (struct RDArgs *)AllocDosObject(DOS_RDARGS, NULL)) {	/* parse my command line */
 		if (ReadArgs(TEMPLATE, result, myrda) && (strlen((char *)result[0]) > 0)) {
 			if(result[OPT_ADDR]) {
 				s = strlen((STRPTR)result[OPT_ADDR]);
-				if((s == 6) ||
-				((strncmp((STRPTR)result[OPT_ADDR], "0x", 2) == 0) && ((s == 10) || (s == 8)))) {
+				if((s == 6) || ((strncmp((STRPTR)result[OPT_ADDR], "0x", 2) == 0) && ((s == 10) || (s == 8)))) {
 					sc.cp = (UBYTE *)stol((STRPTR)result[OPT_ADDR]);
+					if(result[OPT_STRIDE])
+	  				sc.str = *((ULONG*)(result[OPT_STRIDE]));
 					print_pca_state(&sc);
 					if(detect_pca(&sc)) {
 						printf(" yes\n");
@@ -143,14 +149,23 @@ int main(int argc, char **argv)
 			FreeDosObject(DOS_RDARGS, myrda);
 		} else {
 			for(k = 0; k < sizeof(cps)/sizeof(UBYTE*); ++k) {
+				// check byte 0xXX...... -> lines D31...D24
 				sc.cp = cps[k];
-				print_pca_state(&sc);
-				if(detect_pca(&sc)) {
-					printf(" yes\n");
-					break;
-				} else {
-					printf(" no\n");
-				}
+				++(sc.cp);
+				// check byte 0x..XX.... -> lines D23...D16
+				print_pca_state(&sc); printf(" "); printf(detect_pca(&sc)?"yes":"no"); printf("\n");
+				++(sc.cp);
+				// check byte 0x....XX.. -> lines D15...D08
+				print_pca_state(&sc); printf(" "); printf(detect_pca(&sc)?"yes":"no"); printf("\n");
+				// check byte 0x......XX -> lines D7...D0
+			}
+			sc.str = 12;
+			for(k = 0; k < sizeof(cps)/sizeof(UBYTE*); ++k) {
+				sc.cp = cps[k];
+				++(sc.cp);
+				print_pca_state(&sc); printf(" "); printf(detect_pca(&sc)?"yes":"no"); printf("\n");
+				++(sc.cp);
+				print_pca_state(&sc); printf(" "); printf(detect_pca(&sc)?"yes":"no"); printf("\n");
 			}
 		}
 	}

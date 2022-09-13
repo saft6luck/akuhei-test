@@ -77,6 +77,7 @@ typedef struct {
 	result_t cur_result;
 
 	UBYTE *cp;
+	UBYTE str;
 
 	BYTE sig_intr;
 	LONG sigmask_intr;
