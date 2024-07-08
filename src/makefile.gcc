@@ -3,14 +3,15 @@ CC      = m68k-amigaos-gcc
 
 #CFLAGS  = -O2 -fstrength-reduce -fomit-frame-pointer -msmall-code -fbaserel -c
 CFLAGS  = -fbaserel -c
-CFLAGS += -g -ldebug
+CFLAGS += -g -ldebug -I../../i2clibrary/os-include/
 #CFLAGS += -mcrt=nix
-#CFLAGS  = -O2 -c
-#CFLAGS  = -c
+#CFLAGS += -O2 -c
+#CFLAGS += -c
+CFLAGS += -noixemul
 
 LDFLAGS = -noixemul -fbaserel
 LDFLAGS += -g
-LDFLAGS += -I./
+LDFLAGS += -I./ -I../../i2clibrary/os-include/
 #LDFLAGS += -Wl,--amiga-debug-hunk
 #LDFLAGS += -mcrt=nix
 #LDFLAGS += -ldebug
@@ -23,11 +24,17 @@ DBG = -ldebug
 
 TARGETS := lm75 akutest i2cget i2cset i2cdetect i2cstate lm75th hwmon pcadetect
 
-OBJECTS := $(addsuffix .o, $(TARGETS)) akuhei2c.o
+OBJECTS := $(addsuffix .o, $(TARGETS)) akuhei2c.o libopencount.o doslib.o
 
 RMRF = rm -rf
 
 all: $(TARGETS)
+
+doslib : % : %.o
+	$(CC) -o $@ $(LDFLAGS) $^ $(DBG)
+
+libopencount : % : %.o
+	$(CC) -o $@ $(LDFLAGS) $^ $(DBG)
 
 $(TARGETS) : % : %.o akuhei2c.o
 	$(CC) -o $@ $(LDFLAGS) $^ $(DBG)
@@ -36,4 +43,4 @@ $(TARGETS) : % : %.o akuhei2c.o
 	$(CC) $(CFLAGS) $<
 
 clean :
-	$(RMRF) $(OBJECTS) $(TARGETS)
+	$(RMRF) $(OBJECTS) $(TARGETS) libopencount doslib

@@ -78,6 +78,7 @@ typedef struct {
 
 	UBYTE *cp;
 	UBYTE str;
+	UBYTE cr;
 
 	BYTE sig_intr;
 	LONG sigmask_intr;
